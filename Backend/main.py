@@ -1,7 +1,8 @@
+# main.py  ─── FastAPI backend aligned with current React JSON
 from fastapi import FastAPI, Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import List
+from typing import List, Optional
 from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
 from langchain.prompts import PromptTemplate
@@ -19,65 +20,59 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ──────────────── Data models ────────────────
+# ───────────── DATA MODELS ─────────────
 class ExperienceItem(BaseModel):
     title: str
     company: str
-    duration: str                        # e.g. "Apr 2024 – Jul 2024"
+    duration: str
+
+class ProjectItem(BaseModel):
+    title: str                  # <- matches ProjectsSection
+    link: Optional[str] = None
+
+class EducationItem(BaseModel):
+    degree: str
+    institution: str            # <- matches EducationSection
+    year: str
 
 class ResumeInput(BaseModel):
-    # contact
     name: str
     phone: str
     email: str
-    linkedin: str
-    github: str
-    devpost: str
-    # profile
+    linkedin: Optional[str] = None
+    github:  Optional[str] = None
+    devpost: Optional[str] = None
     summary: str
-    # core‑skill buckets
-    programming_languages: str           # "JavaScript, C++, Python"
-    developer_tools: str                 # "Git, GitHub, Postman"
-    libraries_frameworks: str            # "Express.js, React.js, Tailwind CSS"
-    databases: str                       # "MongoDB, PostgreSQL"
-    # main sections
-    experience: List[ExperienceItem]
-    projects: str                        # one line per project: "Project Name | Link"
-    education: str                       # "BS IT (2019 – 2023) | GCUF"
-# ─────────────────────────────────────────────
+    experiences: List[ExperienceItem]
+    projects:    List[ProjectItem]
+    skills:      List[str]
+    education:   List[EducationItem]
+# ───────────────────────────────────────
 
-# ──────────────── Prompt ────────────────
+# ───────────── PROMPT ─────────────
 prompt = PromptTemplate(
     input_variables=[
-        "name", "phone", "email", "linkedin", "github", "devpost",
-        "summary",
-        "programming_languages", "developer_tools",
-        "libraries_frameworks", "databases",
-        "experience_block",
-        "projects_block",
-        "education_block"
+        "name", "contact_info", "summary",
+        "experience_block", "projects_block",
+        "skills_text", "education_block",
     ],
     template=r"""
-You are an expert résumé writer.  Output **pure HTML** (no Markdown, no commentary).
-Required layout:
+You are an expert résumé writer. Output valid pure HTML.
 
 <h1><strong>{name}</strong></h1>
-<p>{phone} | {email} | LinkedIn: {linkedin} | Github: {github} | Devpost: {devpost}</p>
+<p>{contact_info}</p>
 
 <p><strong>SUMMARY</strong></p>
 <p>{summary}</p>
 
-<p><strong>WORK EXPERIENCE</strong></p>
+<p><strong>WORK EXPERIENCE</strong></p>
 {experience_block}
 
 <p><strong>PROJECTS</strong></p>
 {projects_block}
 
-<p><strong>CORE SKILLS</strong></p>
-<p>Programming Languages: {programming_languages}</p>
-<p>Developer Tools: {developer_tools}</p>
-<p>Libraries and Frameworks: {libraries_frameworks}</p>
-<p>Databases: {databases}</p>
+<p><strong>SKILLS</strong></p>
+<p>{skills_text}</p>
 
 <p><strong>EDUCATION</strong></p>
 {education_block}
@@ -92,69 +87,52 @@ llm = ChatOpenAI(
 )
 chain = LLMChain(llm=llm, prompt=prompt)
 
-# ──────────────── Helpers ────────────────
-def build_experience_block(exps: List[ExperienceItem]) -> str:
-    out = []
-    for job in exps:
-        # generate exactly 3 bullets for each job title
+# ───────────── HELPERS ─────────────
+def build_experience_block(items: List[ExperienceItem]) -> str:
+    blocks = []
+    for job in items:
         bullets = llm.invoke(
             f"Write 3 concise resume bullets for a {job.title} at {job.company}. "
-            f"No more than 18 words each."
+            "Each bullet <=18 words."
         ).content.strip().split("\n")[:3]
-        bullet_html = "\n".join(f"<li>{b.lstrip('•- ')}.</li>" for b in bullets)
-        out.append(
-            f"<h3><em>{job.company} | {job.title} ({job.duration})</em></h3>\n<ul>\n{bullet_html}\n</ul>"
-        )
-    return "\n".join(out)
+        li = "\n".join(f"<li>{b.lstrip('•- ')}.</li>" for b in bullets)
+        blocks.append(f"<h3><em>{job.company} | {job.title} ({job.duration})</em></h3><ul>{li}</ul>")
+    return "\n".join(blocks)
 
-def build_projects_block(projects_raw: str) -> str:
-    """
-    Input format: one line per project =>  'Project Name | OptionalLink'
-    Generates 2‑3 bullets per project.
-    """
-    out = []
-    for line in filter(None, [l.strip() for l in projects_raw.splitlines()]):
-        title, *link = [p.strip() for p in line.split("|")]
-        link_part = f" | {link[0]}" if link else ""
-        # bullets
+def build_projects_block(items: List[ProjectItem]) -> str:
+    blocks = []
+    for proj in items:
         bullets = llm.invoke(
-            f"Write 3 concise accomplishments for project '{title}'. "
-            "Start each with a strong verb, <=18 words."
+            f"Write 3 concise accomplishments for project '{proj.title}'. "
+            "Start with a verb, <=18 words."
         ).content.strip().split("\n")[:3]
-        bullet_html = "\n".join(f"<li>{b.lstrip('•- ')}.</li>" for b in bullets)
-        out.append(
-            f"<strong>{title}</strong>{link_part}\n<ul>\n{bullet_html}\n</ul>"
-        )
-    return "\n".join(out)
+        li = "\n".join(f"<li>{b.lstrip('•- ')}.</li>" for b in bullets)
+        title = f"<strong>{proj.title}</strong>" + (f" | {proj.link}" if proj.link else "")
+        blocks.append(f"{title}<ul>{li}</ul>")
+    return "\n".join(blocks)
 
-def build_education_block(edu_raw: str) -> str:
-    """
-    Input example: 'BS IT (2019 - 2023) | Government College University Faisalabad'
-    Returns formatted HTML.
-    """
-    if "|" in edu_raw:
-        degree_part, inst = [p.strip() for p in edu_raw.split("|", 1)]
-    else:
-        degree_part, inst = edu_raw, ""
-    return f"<h3>{degree_part}</h3>\n<p>{inst}</p>"
+def build_education_block(items: List[EducationItem]) -> str:
+    return "\n".join(
+        f"<h3>{e.degree} ({e.year})</h3><p>{e.institution}</p>" for e in items
+    )
 
-# ──────────────── Endpoints ────────────────
+def build_contact_info(d: ResumeInput) -> str:
+    links = [f"LinkedIn: {d.linkedin}" if d.linkedin else "",
+             f"GitHub: {d.github}"     if d.github   else "",
+             f"Devpost: {d.devpost}"   if d.devpost  else ""]
+    links = " | ".join(filter(None, links))
+    return f"{d.phone} | {d.email}" + (f" | {links}" if links else "")
+
+# ───────────── ENDPOINTS ─────────────
 @app.post("/generate")
 async def generate_html(data: ResumeInput):
     html = chain.run(
         name=data.name,
-        phone=data.phone,
-        email=data.email,
-        linkedin=data.linkedin,
-        github=data.github,
-        devpost=data.devpost,
+        contact_info=build_contact_info(data),
         summary=data.summary,
-        programming_languages=data.programming_languages,
-        developer_tools=data.developer_tools,
-        libraries_frameworks=data.libraries_frameworks,
-        databases=data.databases,
-        experience_block=build_experience_block(data.experience),
+        experience_block=build_experience_block(data.experiences),
         projects_block=build_projects_block(data.projects),
+        skills_text=", ".join(data.skills),
         education_block=build_education_block(data.education),
     )
     return {"html": html}
@@ -168,10 +146,11 @@ async def generate_pdf(data: ResumeInput):
         body {{ font-family: Arial, sans-serif; margin:4px; line-height:1.55; }}
         h1 {{ font-size:26px; margin-bottom:0; }}
         h3 {{ font-size:18px; margin-top:18px; }}
-        p {{ margin:6px 0; }}
+        p  {{ margin:6px 0; }}
         ul {{ margin:8px 0; padding-left:20px; }}
         li {{ margin-bottom:4px; }}
-      </style></head><body>{html_resp['html']}</body></html>"""
+      </style></head><body>{html_resp['html']}</body></html>
+    """
     pdf_bytes = HTML(string=styled).write_pdf()
     return Response(
         content=pdf_bytes,

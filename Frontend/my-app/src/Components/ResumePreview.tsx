@@ -1,12 +1,11 @@
-import { FC } from 'react';
-import React from 'react';
+import React, { FC } from "react";
 
 interface Props {
-  markdown: string;
-  formData: any; 
+  html: string;
+  formData: any;
 }
 
-const ResumePreview: FC<Props> = ({ markdown, formData }) => {
+const ResumePreview: FC<Props> = ({ html, formData }) => {
   const handleDownloadPDF = async () => {
     try {
       const res = await fetch("http://localhost:8000/generate-pdf", {
@@ -22,7 +21,6 @@ const ResumePreview: FC<Props> = ({ markdown, formData }) => {
       a.href = url;
       a.download = "resume.pdf";
       a.click();
-
       window.URL.revokeObjectURL(url);
     } catch (err) {
       console.error("Failed to download PDF", err);
@@ -30,28 +28,23 @@ const ResumePreview: FC<Props> = ({ markdown, formData }) => {
   };
 
   return (
-    <div className="flex flex-col items-center w-full h-full p-4 overflow-auto bg-slate-100">
+    <div className="flex flex-col items-center w-full min-h-screen bg-slate-100 py-10 px-4">
       <div
-        className="bg-white shadow-xl border border-slate-300 rounded-sm mb-4"
-        style={{
-          width: "794px",
-          height: "1123px",
-          padding: "36px 50px",
-          overflowY: "auto",
-          fontFamily: "Arial, sans-serif",
-          lineHeight: 1.6,
-        }}
+        className="bg-white shadow-xl border border-slate-300 rounded-sm mb-6 overflow-y-auto"
+        style={{ width: "794px", height: "1123px", padding: "36px 50px" }}
       >
-        {markdown ? (
-          <div dangerouslySetInnerHTML={{ __html: markdown }} />
+        {html ? (
+          <div dangerouslySetInnerHTML={{ __html: html }} />
         ) : (
-          <p className="text-center opacity-60">Your AI‑crafted resume will appear here.</p>
+          <p className="text-center opacity-60">
+            Your AI‑crafted resume will appear here.
+          </p>
         )}
       </div>
 
       <button
         onClick={handleDownloadPDF}
-        className="px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-full shadow hover:opacity-90 transition-all"
+        className="px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-full shadow hover:opacity-90 transition"
       >
         Download as PDF
       </button>
