@@ -12,7 +12,7 @@ const Hero: FC<Props> = ({ onBuildNowClick }) => (
       <div className="flex-1 text-center lg:text-left  w-1/2">
         <h1 className="text-4xl md:text-6xl font-extrabold mb-4 mt-4 bg-gradient-to-r from-pink-500 via-purple-500 to-yellow-400 bg-clip-text text-transparent animate-gradient-x">
           Craft Your Resume
-          <br className="hidden md:block" /> in Seconds
+          <br className="hidden md:block" /> in a Minute
         </h1>
 
         <p className="mb-5 max-w-lg text-base md:text-xl text-slate-700 font-medium mx-auto lg:mx-0">
