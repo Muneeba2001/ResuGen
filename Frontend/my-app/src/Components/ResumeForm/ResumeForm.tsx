@@ -1,21 +1,29 @@
 import React, { useState } from "react";
-import ContactSection     from "./Contact/ContactSection";
-import SkillsSection      from "./Skill/SkillSection";
-import ExpEduProjSection  from "./Experience/Experience";
-import { stepSchemas }    from "./ValidationSchema"; 
+import ContactSection from "./Contact/ContactSection";
+import SkillsSection from "./Skill/SkillSection";
+import ExpEduProjSection from "./Experience/Experience";
+import { stepSchemas } from "./ValidationSchema";
 
-const ResumeForm = ({ onGenerate, loading }) => {
+const ResumeForm = ({ onGenerate, loading, initialData }) => {
   const [step, setStep] = useState(1);
-  const [formData, setFormData] = useState({
-    name: "", email: "", phone: "", summary: "",
-    skills: [], experiences: [], education: [], projects: [],
-  });
+  const [formData, setFormData] = useState(
+    initialData || {
+      name: "",
+      email: "",
+      phone: "",
+      summary: "",
+      skills: [],
+      experiences: [],
+      education: [],
+      projects: [],
+    }
+  );
 
   const updateFormData = (patch) => setFormData((p) => ({ ...p, ...patch }));
 
   /** 🔍 validate against the schema for the *current* step */
   const isCurrentStepValid = () => {
-    const schema = stepSchemas[step - 1];          // array is 0‑indexed
+    const schema = stepSchemas[step - 1]; // array is 0‑indexed
     return schema.safeParse(formData).success;
   };
 
@@ -48,7 +56,11 @@ const ResumeForm = ({ onGenerate, loading }) => {
 
       <form onSubmit={handleSubmit}>
         {step === 1 && (
-          <ContactSection data={formData} onNext={nextStep} onUpdate={updateFormData} />
+          <ContactSection
+            data={formData}
+            onNext={nextStep}
+            onUpdate={updateFormData}
+          />
         )}
 
         {step === 2 && (
@@ -86,4 +98,3 @@ const ResumeForm = ({ onGenerate, loading }) => {
 };
 
 export default ResumeForm;
-

@@ -3,9 +3,10 @@ import React, { FC } from "react";
 interface Props {
   html: string;
   formData: any;
+  onUpdate: () => void;
 }
 
-const ResumePreview: FC<Props> = ({ html, formData }) => {
+const ResumePreview: FC<Props> = ({ html, formData, onUpdate }) => {
   const handleDownloadPDF = async () => {
     try {
       const res = await fetch("http://localhost:8000/generate-pdf", {
@@ -42,12 +43,21 @@ const ResumePreview: FC<Props> = ({ html, formData }) => {
         )}
       </div>
 
-      <button
-        onClick={handleDownloadPDF}
-        className="px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-full shadow hover:opacity-90 transition"
-      >
-        Download as PDF
-      </button>
+      <div className="flex gap-4">
+        <button
+          onClick={handleDownloadPDF}
+          className="px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-full shadow hover:opacity-90 transition"
+        >
+          Download as PDF
+        </button>
+
+        <button
+          onClick={onUpdate}
+          className="px-6 py-3 bg-gray-300 text-gray-800 rounded-full shadow hover:bg-gray-400 transition"
+        >
+          Update Resume
+        </button>
+      </div>
     </div>
   );
 };

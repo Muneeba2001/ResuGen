@@ -1,17 +1,17 @@
-import React, { useState } from 'react';
-import ResumeForm from './ResumeForm/ResumeForm';
-import ResumePreview from './ResumePreview';
+import React, { useState } from "react";
+import ResumeForm from "./ResumeForm/ResumeForm";
+import ResumePreview from "./ResumePreview";
 
-type Page = 'form' | 'preview';
+type Page = "form" | "preview";
 
 interface Props {
   onBackHome: () => void;
 }
 
 export default function ResumeBuilder({ onBackHome }: Props) {
-  const [page, setPage] = useState<Page>('form');
+  const [page, setPage] = useState<Page>("form");
   const [loading, setLoading] = useState(false);
-  const [html, setHtml] = useState('');
+  const [html, setHtml] = useState("");
   const [formData, setFormData] = useState<any>(null);
 
   const generateResume = async (form: any) => {
@@ -19,18 +19,18 @@ export default function ResumeBuilder({ onBackHome }: Props) {
     setFormData(form);
 
     try {
-      const res = await fetch('http://localhost:8000/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch("http://localhost:8000/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
       });
 
       const { html } = await res.json();
       setHtml(html);
-      setPage('preview');
+      setPage("preview");
     } catch (err) {
       console.error(err);
-      alert('Something went wrong. Try again!');
+      alert("Something went wrong. Try again!");
     } finally {
       setLoading(false);
     }
@@ -38,12 +38,20 @@ export default function ResumeBuilder({ onBackHome }: Props) {
 
   return (
     <div className="relative z-10 bg-slate-50 py-20 px-6 flex flex-col items-center min-h-screen">
-      {page === 'form' && (
-        <ResumeForm onGenerate={generateResume} loading={loading} />
+      {page === "form" && (
+        <ResumeForm
+          onGenerate={generateResume}
+          loading={loading}
+          initialData={formData}
+        />
       )}
 
-      {page === 'preview' && formData && (
-        <ResumePreview html={html} formData={formData} />
+      {page === "preview" && formData && (
+        <ResumePreview
+          html={html}
+          formData={formData}
+          onUpdate={() => setPage("form")}
+        />
       )}
 
       {/* Spinner overlay */}
