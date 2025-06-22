@@ -16,6 +16,7 @@ const ResumeForm = ({ onGenerate, loading, initialData }) => {
       experiences: [],
       education: [],
       projects: [],
+      category:"",
     }
   );
 

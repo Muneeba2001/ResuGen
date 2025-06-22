@@ -16,6 +16,7 @@ class EducationItem(BaseModel):
     year: str
 
 class ResumeInput(BaseModel):
+    category: str 
     name: str
     phone: str
     email: str

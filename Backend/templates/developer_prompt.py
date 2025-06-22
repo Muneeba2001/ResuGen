@@ -1,6 +1,6 @@
 from langchain.prompts import PromptTemplate
 
-resume_prompt = PromptTemplate(
+developer_prompt = PromptTemplate(
     input_variables=[
         "name", "contact_info", "summary",
         "experience_block", "projects_block",
